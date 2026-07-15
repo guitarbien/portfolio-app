@@ -41,6 +41,13 @@ describe('Settings', () => {
     expect(await screen.findByText('更新 2 檔、失敗 0 檔')).toBeInTheDocument()
   })
 
+  it('無報價時不顯示過期標記', async () => {
+    await repo.putInstrument({ symbol: '0050', name: '元大台灣50', market: 'TW', currency: 'TWD', leverageFactor: 1 })
+    render(<Settings />)
+    expect(await screen.findByText(/無報價/)).toBeInTheDocument()
+    expect(screen.queryByText('過期')).not.toBeInTheDocument()
+  })
+
   it('儲存 Twelve Data API key 至 localStorage', async () => {
     const user = userEvent.setup()
     render(<Settings />)

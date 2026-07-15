@@ -9,6 +9,7 @@ vi.mock('./quotes/refresh', () => ({
 }))
 
 beforeEach(async () => {
+  vi.clearAllMocks()
   await Promise.all(db.tables.map((t) => t.clear()))
 })
 
@@ -32,6 +33,6 @@ describe('App', () => {
   it('開啟時呼叫一次 refreshQuotes', async () => {
     const { refreshQuotes } = await import('./quotes/refresh')
     render(<App />)
-    expect(refreshQuotes).toHaveBeenCalled()
+    expect(refreshQuotes).toHaveBeenCalledOnce()
   })
 })

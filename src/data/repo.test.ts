@@ -26,6 +26,13 @@ describe('repo 基本 CRUD', () => {
     const pid = await repo.addPosition({ date: '2026-07-14', accountId: 1, symbol: '0050', qty: 1 })
     await repo.deletePosition(pid)
     expect(await repo.listPositions()).toHaveLength(0)
+    const lid = await repo.addLoan({
+      name: '質押A', kind: 'pledge', balance: 60_000, rate: 0.04,
+      maintenanceThreshold: 130, restoreThreshold: 166,
+      includeInterestInDenominator: false, collateral: [],
+    })
+    await repo.deleteLoan(lid)
+    expect(await repo.listLoans()).toHaveLength(0)
   })
 })
 

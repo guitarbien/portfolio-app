@@ -76,7 +76,7 @@ export default function Holdings() {
           onChange={(e) => setAccount({ ...account, currency: e.target.value as 'TWD' })}>
           <option value="TWD">TWD</option><option value="USD">USD</option>
         </select></label>
-        <label>現金餘額<input type="number" value={account.cashBalance}
+        <label>現金餘額<input type="number" value={account.cashBalance || ''}
           onChange={(e) => setAccount({ ...account, cashBalance: Number(e.target.value) })} /></label>
         <button type="submit">新增帳戶</button>
       </form>

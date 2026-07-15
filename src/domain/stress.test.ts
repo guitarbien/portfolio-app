@@ -121,6 +121,12 @@ describe('stressTest', () => {
     expect(r.bullets).toBe(50_000)
   })
 
+  it('擔保品查無 instrument 時 β 預設 1（spec §6.5）', () => {
+    const loan = pledge({ collateral: [{ symbol: '9999', qty: 1000 }] })
+    const r = stressTest({ drop: 0, loans: [loan], instruments, prices: new Map([['9999', { close: 100, date: '2026-07-14' }]]), cashTwd: 0 })
+    expect(r.loans[0].marginCallDrop).toBeCloseTo(0.22, 6) // 同 β=1 案例
+  })
+
   it('排序：缺報價者（marginCallDrop undefined）排最後（?? Infinity 分支）', () => {
     const normal = pledge({ id: 1, name: '正常' })
     const noQuote = pledge({ id: 2, name: '缺價', collateral: [{ symbol: '2330', qty: 100 }] })

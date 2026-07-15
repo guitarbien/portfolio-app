@@ -41,7 +41,7 @@ export default function Settings({ refresh = refreshQuotes }: { refresh?: () => 
       <ul>
         {rows.map((r) => (
           <li key={r.symbol}>
-            {r.symbol}：{r.date ?? '無報價'} {r.date !== today() && <strong>過期</strong>}
+            {r.symbol}：{r.date ?? '無報價'} {r.date && r.date !== today() && <strong>過期</strong>}
           </li>
         ))}
       </ul>
