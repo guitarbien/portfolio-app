@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import type { Account, FxRate, Instrument, Loan, Price, SnapshotPosition } from '../domain/types'
+import type { Account, CashFlow, FxRate, Instrument, Loan, Price, SnapshotPosition, Transaction } from '../domain/types'
 
 export class PortfolioDb extends Dexie {
   accounts!: Table<Account, number>
@@ -8,6 +8,8 @@ export class PortfolioDb extends Dexie {
   loans!: Table<Loan, number>
   prices!: Table<Price, [string, string, string]>
   fxRates!: Table<FxRate, [string, string, string]>
+  transactions!: Table<Transaction, number>
+  cashFlows!: Table<CashFlow, number>
 
   constructor() {
     super('portfolio')
@@ -18,6 +20,10 @@ export class PortfolioDb extends Dexie {
       loans: '++id',
       prices: '[symbol+date+source], symbol',
       fxRates: '[pair+date+source], pair',
+    })
+    this.version(2).stores({
+      transactions: '++id, symbol',
+      cashFlows: '++id, date',
     })
   }
 }

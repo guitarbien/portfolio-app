@@ -60,3 +60,52 @@ describe('latestUsdTwd', () => {
     expect((await repo.latestUsdTwd())!.rate).toBe(32.2)
   })
 })
+
+describe('cashFlows 與 transactions CRUD', () => {
+  it('addCashFlows 批次寫入後可讀回、可刪除', async () => {
+    await repo.addCashFlows([
+      { accountId: 1, date: '2016-03-05', amount: 3000, currency: 'TWD', kind: 'contribution', is_external: true },
+      { accountId: 1, date: '2016-04-05', amount: -500, currency: 'TWD', kind: 'dividend', is_external: true },
+    ])
+    const all = await repo.listCashFlows()
+    expect(all).toHaveLength(2)
+    await repo.deleteCashFlow(all[0].id!)
+    expect(await repo.listCashFlows()).toHaveLength(1)
+  })
+
+  it('transaction CRUD', async () => {
+    const id = await repo.addTransaction({ accountId: 1, date: '2026-07-15', symbol: '0050', qty: -100, price: 101, fee: 20, tax: 30 })
+    expect((await repo.listTransactions())[0].qty).toBe(-100)
+    await repo.deleteTransaction(id)
+    expect(await repo.listTransactions()).toHaveLength(0)
+  })
+})
+
+describe('updateAccount / updateLoan', () => {
+  it('部分更新現金餘額與借款餘額', async () => {
+    const aid = await repo.addAccount({ name: '永豐', broker: '永豐金', currency: 'TWD', cashBalance: 0 })
+    await repo.updateAccount(aid, { cashBalance: 99_000 })
+    expect((await repo.listAccounts())[0].cashBalance).toBe(99_000)
+    const lid = await repo.addLoan({
+      name: '質押A', kind: 'pledge', balance: 60_000, rate: 0.04,
+      maintenanceThreshold: 130, restoreThreshold: 166,
+      includeInterestInDenominator: false, collateral: [],
+    })
+    await repo.updateLoan(lid, { balance: 50_000 })
+    expect((await repo.listLoans())[0].balance).toBe(50_000)
+  })
+})
+
+describe('addPosition 快照守衛', () => {
+  it('同帳戶同標的重複建快照 → 拒絕', async () => {
+    await repo.addPosition({ date: '2026-07-15', accountId: 1, symbol: '0050', qty: 1000 })
+    await expect(
+      repo.addPosition({ date: '2026-07-16', accountId: 1, symbol: '0050', qty: 500 }),
+    ).rejects.toThrow('該帳戶已有此標的的開帳快照')
+  })
+
+  it('不同帳戶同標的可各自建快照', async () => {
+    await repo.addPosition({ date: '2026-07-15', accountId: 1, symbol: '0050', qty: 1000 })
+    await expect(repo.addPosition({ date: '2026-07-15', accountId: 2, symbol: '0050', qty: 300 })).resolves.toBeDefined()
+  })
+})
