@@ -23,6 +23,8 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: '持倉' })).toBeInTheDocument()
     await user.click(screen.getByRole('tab', { name: '借款' }))
     expect(screen.getByRole('heading', { name: '借款' })).toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: '紀錄' }))
+    expect(screen.getByRole('heading', { name: '紀錄' })).toBeInTheDocument()
     await user.click(screen.getByRole('tab', { name: '設定' }))
     expect(screen.getByRole('heading', { name: '設定' })).toBeInTheDocument()
   })

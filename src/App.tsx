@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import Dashboard from './ui/Dashboard'
 import Holdings from './ui/Holdings'
 import Loans from './ui/Loans'
+import Records from './ui/Records'
 import Settings from './ui/Settings'
 import { refreshQuotes } from './quotes/refresh'
 
@@ -9,6 +10,7 @@ const TABS = [
   { key: 'dashboard', label: '儀表板', view: <Dashboard /> },
   { key: 'holdings', label: '持倉', view: <Holdings /> },
   { key: 'loans', label: '借款', view: <Loans /> },
+  { key: 'records', label: '紀錄', view: <Records /> },
   { key: 'settings', label: '設定', view: <Settings /> },
 ] as const
 
