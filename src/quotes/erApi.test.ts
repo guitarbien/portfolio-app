@@ -28,4 +28,20 @@ describe('fetchUsdTwd', () => {
     const r = await fetchUsdTwd(fakeFetch({}, 500))
     expect(r.ok).toBe(false)
   })
+
+  it('缺 time_last_update_utc → ok:false 更新時間無法解析', async () => {
+    const r = await fetchUsdTwd(fakeFetch({ result: 'success', rates: { TWD: 32 } }))
+    expect(r).toEqual({ ok: false, reason: '更新時間無法解析' })
+  })
+
+  it('time_last_update_utc 為壞字串 → ok:false', async () => {
+    const r = await fetchUsdTwd(fakeFetch({ result: 'success', rates: { TWD: 32 }, time_last_update_utc: 'not-a-date' }))
+    expect(r).toEqual({ ok: false, reason: '更新時間無法解析' })
+  })
+
+  it('fetch 拒絕（網路錯誤）→ ok:false 不 throw', async () => {
+    const rejecting = (async () => { throw new Error('network down') }) as unknown as typeof fetch
+    const r = await fetchUsdTwd(rejecting)
+    expect(r).toEqual({ ok: false, reason: 'network down' })
+  })
 })

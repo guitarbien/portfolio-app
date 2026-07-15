@@ -55,4 +55,12 @@ describe('refreshQuotes', () => {
     expect(report.updated).toContain('0050')
     expect(report.failed).toEqual([{ symbol: '2330', reason: 'HTTP 500' }])
   })
+
+  it('fetchFx 失敗記入 failed，USDTWD 不進 updated', async () => {
+    const report = await refreshQuotes(deps({
+      fetchFx: async () => ({ ok: false, reason: 'HTTP 500' }),
+    }))
+    expect(report.failed).toContainEqual({ symbol: 'USDTWD', reason: 'HTTP 500' })
+    expect(report.updated).not.toContain('USDTWD')
+  })
 })

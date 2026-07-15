@@ -97,4 +97,34 @@ describe('stressTest', () => {
     expect(r.loans[0].stressedRatio).toBeUndefined()
     expect(r.loans[0].missing).toEqual(['2330'])
   })
+
+  it('balance=0（有擔保品有報價）→ 只有 name/missing，無 stressedRatio/marginCallDrop/topUp*', () => {
+    const r = run(0.3, [pledge({ balance: 0 })])
+    expect(r.loans[0].stressedRatio).toBeUndefined()
+    expect(r.loans[0].marginCallDrop).toBeUndefined()
+    expect(r.loans[0].topUpCollateral).toBeUndefined()
+    expect(r.loans[0].topUpRepay).toBeUndefined()
+    expect(r.loans[0].missing).toEqual([])
+  })
+
+  it('leverageFactor=0 的擔保品：marginCallDrop undefined，stressedRatio 正常計算', () => {
+    const zeroInst = new Map<string, Instrument>([['ZERO', inst('ZERO', 0)]])
+    const zeroPrices: PriceMap = new Map([['ZERO', { close: 100, date: '2026-07-14' }]])
+    const loan = pledge({ collateral: [{ symbol: 'ZERO', qty: 1000 }] })
+    const r = stressTest({ drop: 0.3, loans: [loan], instruments: zeroInst, prices: zeroPrices, cashTwd: 0 })
+    expect(r.loans[0].marginCallDrop).toBeUndefined()
+    expect(r.loans[0].stressedRatio).toBeCloseTo(100_000 / 60_000 * 100, 4)
+  })
+
+  it('mortgage 無 creditLimit → 不增加補繳子彈（?? 0 分支）', () => {
+    const r = run(0, [mortgage({ creditLimit: undefined })], 50_000)
+    expect(r.bullets).toBe(50_000)
+  })
+
+  it('排序：缺報價者（marginCallDrop undefined）排最後（?? Infinity 分支）', () => {
+    const normal = pledge({ id: 1, name: '正常' })
+    const noQuote = pledge({ id: 2, name: '缺價', collateral: [{ symbol: '2330', qty: 100 }] })
+    const r = run(0, [noQuote, normal]) // 輸入順序：缺價在前
+    expect(r.loans.map((l) => l.id)).toEqual([1, 2]) // 排序後：正常在前
+  })
 })

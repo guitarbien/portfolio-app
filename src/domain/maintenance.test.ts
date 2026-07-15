@@ -23,6 +23,11 @@ describe('accruedInterest', () => {
   it('未填 lastInterestSettleDate 視為 0（spec §6.4）', () => {
     expect(accruedInterest(pledge(), '2026-07-14')).toBe(0)
   })
+
+  it('asOf 早於 lastInterestSettleDate → 回 0（days ≤ 0 分支）', () => {
+    const loan = pledge({ lastInterestSettleDate: '2026-07-20' })
+    expect(accruedInterest(loan, '2026-07-14')).toBe(0)
+  })
 })
 
 describe('maintenanceRatio', () => {
@@ -59,5 +64,9 @@ describe('maintenanceRatio', () => {
     const r = maintenanceRatio(loan, prices, '2026-07-14')
     expect(r.ratio).toBeUndefined()
     expect(r.missing).toEqual(['2330'])
+  })
+
+  it('balance=-1 → ratio undefined（balance ≤ 0 分支）', () => {
+    expect(maintenanceRatio(pledge({ balance: -1 }), prices, '2026-07-14').ratio).toBeUndefined()
   })
 })
