@@ -6,21 +6,22 @@ import { maintenanceRatio } from '../domain/maintenance'
 import { stressTest } from '../domain/stress'
 import { fmtPct, fmtTwd } from '../lib/format'
 import { today } from '../lib/date'
+import { currentHoldings } from '../domain/holdings'
 
 export default function Dashboard() {
   const [dropPct, setDropPct] = useState(0)
   const data = useLiveQuery(async () => {
-    const [accounts, instrumentList, positions, loans, prices, fx] = await Promise.all([
+    const [accounts, instrumentList, positions, transactions, loans, prices, fx] = await Promise.all([
       repo.listAccounts(), repo.listInstruments(), repo.listPositions(),
-      repo.listLoans(), repo.latestEffectivePrices(), repo.latestUsdTwd(),
+      repo.listTransactions(), repo.listLoans(), repo.latestEffectivePrices(), repo.latestUsdTwd(),
     ])
-    return { accounts, instruments: new Map(instrumentList.map((i) => [i.symbol, i])), positions, loans, prices, fx }
+    return { accounts, instruments: new Map(instrumentList.map((i) => [i.symbol, i])), positions, transactions, loans, prices, fx }
   }, [])
 
   if (!data) return <p>載入中…</p>
 
   const valuation = valuate({
-    positions: data.positions,
+    positions: currentHoldings(data.positions, data.transactions),
     instruments: data.instruments,
     prices: data.prices,
     usdTwd: data.fx?.rate,

@@ -46,7 +46,7 @@ describe('Holdings', () => {
     expect((await repo.listPositions())[0]).toEqual(
       expect.objectContaining({ symbol: '00631L', qty: 1000 }),
     )
-    expect(await screen.findByText('00631L')).toBeInTheDocument()
+    expect((await screen.findAllByText('00631L'))[0]).toBeInTheDocument()
   })
 
   it('刪除持倉', async () => {
@@ -57,5 +57,32 @@ describe('Holdings', () => {
     render(<Holdings />)
     await user.click(await screen.findByRole('button', { name: '刪除 0050' }))
     expect(await repo.listPositions()).toHaveLength(0)
+  })
+
+  it('目前持倉表顯示市值（快照＋交易合併），缺價顯示 —', async () => {
+    const accountId = await repo.addAccount({ name: '永豐', broker: '永豐金', currency: 'TWD', cashBalance: 0 })
+    await repo.putInstrument({ symbol: '0050', name: '元大台灣50', market: 'TW', currency: 'TWD', leverageFactor: 1 })
+    await repo.putInstrument({ symbol: '2330', name: '台積電', market: 'TW', currency: 'TWD', leverageFactor: 1 })
+    await repo.addPosition({ date: '2026-07-15', accountId, symbol: '0050', qty: 1000 })
+    await repo.addTransaction({ accountId, date: '2026-07-16', symbol: '0050', qty: 500, price: 100, fee: 0, tax: 0 })
+    await repo.addTransaction({ accountId, date: '2026-07-16', symbol: '2330', qty: 10, price: 900, fee: 0, tax: 0 })
+    await repo.upsertPrice({ symbol: '0050', date: '2026-07-16', close: 100, source: 'manual' })
+    render(<Holdings />)
+    expect(await screen.findByText('150,000')).toBeInTheDocument() // 1500 × 100
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0) // 2330 缺價（收盤價＋市值均顯示 —）
+  })
+
+  it('重複建快照顯示守衛錯誤', async () => {
+    const accountId = await repo.addAccount({ name: '永豐', broker: '永豐金', currency: 'TWD', cashBalance: 0 })
+    await repo.putInstrument({ symbol: '0050', name: '元大台灣50', market: 'TW', currency: 'TWD', leverageFactor: 1 })
+    await repo.addPosition({ date: '2026-07-15', accountId, symbol: '0050', qty: 1000 })
+    const user = userEvent.setup()
+    render(<Holdings />)
+    await user.selectOptions(await screen.findByRole('combobox', { name: /帳戶/ }), '永豐')
+    await user.type(screen.getByLabelText('代號'), '0050')
+    await user.type(screen.getByLabelText('名稱'), '元大台灣50')
+    await user.type(screen.getByLabelText('股數'), '100')
+    await user.click(screen.getByRole('button', { name: '新增持倉' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('該帳戶已有此標的的開帳快照')
   })
 })

@@ -2,15 +2,24 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { repo } from '../data/repo'
 import { today } from '../lib/date'
+import { currentHoldings } from '../domain/holdings'
+import { fmtTwd } from '../lib/format'
 
 export default function Holdings() {
   const accounts = useLiveQuery(repo.listAccounts, [], [])
   const positions = useLiveQuery(repo.listPositions, [], [])
+  const data = useLiveQuery(async () => {
+    const [transactions, prices, usdTwdFx, instrumentList] = await Promise.all([
+      repo.listTransactions(), repo.latestEffectivePrices(), repo.latestUsdTwd(), repo.listInstruments(),
+    ])
+    return { transactions, prices, usdTwd: usdTwdFx?.rate, instrumentMap: new Map(instrumentList.map((i) => [i.symbol, i])) }
+  }, [])
 
   const [account, setAccount] = useState({ name: '', broker: '', currency: 'TWD' as const, cashBalance: 0 })
   const [pos, setPos] = useState({
     accountId: '', symbol: '', name: '', market: 'TW' as 'TW' | 'US', leverageFactor: 1, qty: 0,
   })
+  const [error, setError] = useState('')
 
   const addAccount = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -20,13 +29,23 @@ export default function Holdings() {
 
   const addPosition = async (e: React.FormEvent) => {
     e.preventDefault()
-    await repo.putInstrument({
-      symbol: pos.symbol, name: pos.name, market: pos.market,
-      currency: pos.market === 'TW' ? 'TWD' : 'USD', leverageFactor: pos.leverageFactor,
-    })
-    await repo.addPosition({ date: today(), accountId: Number(pos.accountId), symbol: pos.symbol, qty: pos.qty })
-    setPos({ accountId: pos.accountId, symbol: '', name: '', market: 'TW', leverageFactor: 1, qty: 0 })
+    try {
+      await repo.putInstrument({
+        symbol: pos.symbol, name: pos.name, market: pos.market,
+        currency: pos.market === 'TW' ? 'TWD' : 'USD', leverageFactor: pos.leverageFactor,
+      })
+      await repo.addPosition({ date: today(), accountId: Number(pos.accountId), symbol: pos.symbol, qty: pos.qty })
+      setError('')
+      setPos({ accountId: pos.accountId, symbol: '', name: '', market: 'TW', leverageFactor: 1, qty: 0 })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    }
   }
+
+  const holdings = currentHoldings(positions, data?.transactions ?? [])
+  const prices = data?.prices ?? new Map()
+  const instrumentMap = data?.instrumentMap ?? new Map()
+  const usdTwd = data?.usdTwd
 
   return (
     <section>
@@ -65,8 +84,10 @@ export default function Holdings() {
           onChange={(e) => setPos({ ...pos, qty: Number(e.target.value) })} /></label>
         <button type="submit">新增持倉</button>
       </form>
+      {error && <p role="alert">{error}</p>}
 
       <table>
+        <caption>開帳快照</caption>
         <thead><tr><th>代號</th><th>股數</th><th></th></tr></thead>
         <tbody>
           {positions.map((p) => (
@@ -77,6 +98,27 @@ export default function Holdings() {
                 onClick={() => repo.deletePosition(p.id!)}>刪除</button></td>
             </tr>
           ))}
+        </tbody>
+      </table>
+
+      <table>
+        <caption>目前持倉</caption>
+        <thead><tr><th>代號</th><th>股數</th><th>收盤價</th><th>市值 TWD</th></tr></thead>
+        <tbody>
+          {holdings.map((h) => {
+            const quote = prices.get(h.symbol)
+            const inst = instrumentMap.get(h.symbol)
+            const fx = inst?.currency === 'USD' ? usdTwd : 1
+            const mv = quote && fx !== undefined ? h.qty * quote.close * fx : undefined
+            return (
+              <tr key={`${h.accountId}:${h.symbol}`}>
+                <td>{h.symbol}</td>
+                <td>{h.qty}</td>
+                <td>{quote ? quote.close : '—'}</td>
+                <td>{mv !== undefined ? fmtTwd(mv) : '—'}</td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </section>

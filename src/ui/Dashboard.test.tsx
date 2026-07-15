@@ -55,6 +55,14 @@ describe('Dashboard', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('2330')
   })
 
+  it('估值包含快照後的交易（currentHoldings）', async () => {
+    await seed() // 0050×1000 @100、現金 50,000、借款 60,000 → NAV 90,000
+    const accounts = await repo.listAccounts()
+    await repo.addTransaction({ accountId: accounts[0].id!, date: '2026-07-16', symbol: '0050', qty: 500, price: 100, fee: 0, tax: 0 })
+    render(<Dashboard />)
+    expect(await screen.findByText('140,000')).toBeInTheDocument() // NAV = 150,000 + 50,000 − 60,000
+  })
+
   it('NAV ≤ 0：槓桿倍率顯示 —', async () => {
     const accountId = await repo.addAccount({ name: '永豐', broker: '永豐金', currency: 'TWD', cashBalance: 0 })
     await repo.putInstrument({ symbol: '0050', name: '元大台灣50', market: 'TW', currency: 'TWD', leverageFactor: 1 })
