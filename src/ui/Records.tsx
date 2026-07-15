@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { repo } from '../data/repo'
 import { today } from '../lib/date'
 import type { CashFlow } from '../domain/types'
+import ImportWizard from './ImportWizard'
 
 const KINDS: { value: CashFlow['kind']; label: string }[] = [
   { value: 'contribution', label: '投入' },
@@ -93,6 +94,8 @@ export default function Records() {
           </li>
         ))}
       </ul>
+
+      <ImportWizard />
     </section>
   )
 }
