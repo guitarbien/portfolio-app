@@ -23,6 +23,28 @@ export interface SnapshotPosition {
   cost?: number // 不影響報酬率計算（spec §5）
 }
 
+export interface Transaction {
+  id?: number
+  accountId: number
+  date: string // YYYY-MM-DD
+  symbol: string
+  qty: number // 帶號：買正賣負
+  price: number
+  fee: number
+  tax: number
+}
+
+export interface CashFlow {
+  id?: number
+  accountId: number
+  date: string // YYYY-MM-DD
+  amount: number // 組合視角帶號：錢進組合 +、錢出組合 −
+  currency: 'TWD' | 'USD'
+  kind: 'contribution' | 'withdrawal' | 'dividend' | 'interest' | 'fee' | 'transfer'
+  is_external: boolean
+  fx_rate?: number // 外幣流量的發生日匯率（選填）
+}
+
 export interface Loan {
   id?: number
   name: string

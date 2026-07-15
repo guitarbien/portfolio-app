@@ -31,6 +31,7 @@ describe('Holdings', () => {
     await repo.addAccount({ name: '永豐', broker: '永豐金', currency: 'TWD', cashBalance: 0 })
     const user = userEvent.setup()
     render(<Holdings />)
+    await screen.findByRole('option', { name: '永豐' })
     await user.selectOptions(await screen.findByLabelText('帳戶'), '永豐')
     await user.type(screen.getByLabelText('代號'), '00631L')
     await user.type(screen.getByLabelText('名稱'), '元大台灣50正2')
