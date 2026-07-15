@@ -7,6 +7,7 @@ import { today } from '../lib/date'
 import Settings from './Settings'
 
 beforeEach(async () => {
+  localStorage.clear()
   await Promise.all(db.tables.map((t) => t.clear()))
 })
 
@@ -38,5 +39,13 @@ describe('Settings', () => {
     await user.click(screen.getByRole('button', { name: '重新抓取報價' }))
     expect(refresh).toHaveBeenCalledOnce()
     expect(await screen.findByText('更新 2 檔、失敗 0 檔')).toBeInTheDocument()
+  })
+
+  it('儲存 Twelve Data API key 至 localStorage', async () => {
+    const user = userEvent.setup()
+    render(<Settings />)
+    await user.type(screen.getByLabelText('Twelve Data API key'), 'abc123')
+    await user.click(screen.getByRole('button', { name: '儲存 API key' }))
+    expect(localStorage.getItem('twelveDataApiKey')).toBe('abc123')
   })
 })

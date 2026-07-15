@@ -6,6 +6,7 @@ import { today } from '../lib/date'
 
 export default function Settings({ refresh = refreshQuotes }: { refresh?: () => Promise<RefreshReport> }) {
   const [manual, setManual] = useState({ symbol: '', close: 0 })
+  const [usKey, setUsKey] = useState(localStorage.getItem('twelveDataApiKey') ?? '')
   const [report, setReport] = useState<RefreshReport>()
   const rows = useLiveQuery(async () => {
     const [instruments, prices] = await Promise.all([repo.listInstruments(), repo.latestEffectivePrices()])
@@ -27,6 +28,11 @@ export default function Settings({ refresh = refreshQuotes }: { refresh?: () => 
         <label>收盤價<input type="number" step="0.01" value={manual.close || ''} required
           onChange={(e) => setManual({ ...manual, close: Number(e.target.value) })} /></label>
         <button type="submit">儲存手動報價</button>
+      </form>
+
+      <form onSubmit={(e) => { e.preventDefault(); localStorage.setItem('twelveDataApiKey', usKey) }}>
+        <label>Twelve Data API key<input value={usKey} onChange={(e) => setUsKey(e.target.value)} /></label>
+        <button type="submit">儲存 API key</button>
       </form>
 
       <button onClick={async () => setReport(await refresh())}>重新抓取報價</button>

@@ -23,27 +23,30 @@ import type { RefreshDeps } from './refresh'
 const deps = (over: Partial<RefreshDeps> = {}): RefreshDeps => ({
   fetchTwse: async (s: string) => priceOk(s),
   fetchFx: async () => fxOk,
+  fetchUs: async (s: string) => priceOk(s),
+  getUsKey: () => 'test-key',
   now: () => NOW,
   ...over,
 })
 
 describe('refreshQuotes', () => {
-  it('只抓台股，成功寫入 Price 與 FxRate', async () => {
+  it('TW 與 US 都更新，成功寫入 Price 與 FxRate', async () => {
     const report = await refreshQuotes(deps())
-    expect(report.updated.sort()).toEqual(['0050', 'USDTWD'])
+    expect(report.updated.sort()).toEqual(['0050', 'USDTWD', 'VOO'])
     expect((await repo.latestEffectivePrices()).get('0050')!.close).toBe(100)
     expect((await repo.latestUsdTwd())!.rate).toBe(32)
   })
 
   it('當日已有價則跳過不抓（skipped）', async () => {
     await repo.upsertPrice({ symbol: '0050', date: NOW, close: 99, source: 'auto' })
+    await repo.upsertPrice({ symbol: 'VOO', date: NOW, close: 500, source: 'auto' })
     await repo.upsertFx({ pair: 'USDTWD', date: NOW, rate: 31.9, source: 'auto' })
     let called = 0
     const report = await refreshQuotes(deps({
       fetchTwse: async (s: string) => { called++; return priceOk(s) },
     }))
     expect(called).toBe(0)
-    expect(report.skipped.sort()).toEqual(['0050', 'USDTWD'])
+    expect(report.skipped.sort()).toEqual(['0050', 'USDTWD', 'VOO'])
   })
 
   it('單檔失敗記入 failed，不影響其他檔', async () => {
@@ -62,5 +65,36 @@ describe('refreshQuotes', () => {
     }))
     expect(report.failed).toContainEqual({ symbol: 'USDTWD', reason: 'HTTP 500' })
     expect(report.updated).not.toContain('USDTWD')
+  })
+
+  it('無 API key → US 全記 failed 且不呼叫 fetchUs', async () => {
+    let called = 0
+    const report = await refreshQuotes(deps({
+      getUsKey: () => null,
+      fetchUs: async (s: string) => { called++; return priceOk(s) },
+    }))
+    expect(called).toBe(0)
+    expect(report.failed).toContainEqual({ symbol: 'VOO', reason: '未設定 Twelve Data API key' })
+    expect(report.updated).toContain('0050')
+  })
+
+  it('無 API key 但美股當日已有價 → skipped 不記 failed 且不呼叫 fetchUs', async () => {
+    await repo.upsertPrice({ symbol: 'VOO', date: NOW, close: 500, source: 'manual' })
+    let called = 0
+    const report = await refreshQuotes(deps({
+      getUsKey: () => null,
+      fetchUs: async (s: string) => { called++; return priceOk(s) },
+    }))
+    expect(called).toBe(0)
+    expect(report.skipped).toContain('VOO')
+    expect(report.failed.map((f) => f.symbol)).not.toContain('VOO')
+  })
+
+  it('US 單檔失敗不影響 TW', async () => {
+    const report = await refreshQuotes(deps({
+      fetchUs: async () => ({ ok: false as const, reason: 'HTTP 429' }),
+    }))
+    expect(report.failed).toContainEqual({ symbol: 'VOO', reason: 'HTTP 429' })
+    expect(report.updated).toContain('0050')
   })
 })
