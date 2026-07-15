@@ -83,10 +83,12 @@ describe('stressTest', () => {
   })
 
   it('多筆質押依 marginCallDrop 升冪排序（誰先斷頭排前面）', () => {
-    const safe = pledge({ name: '安全', balance: 30_000 })
-    const risky = pledge({ name: '危險', balance: 70_000 })
+    const safe = pledge({ id: 1, name: '安全', balance: 30_000 })
+    const risky = pledge({ id: 2, name: '危險', balance: 70_000 })
     const r = run(0, [safe, risky])
+    expect(r.loans.map((l) => l.id)).toEqual([2, 1])
     expect(r.loans.map((l) => l.name)).toEqual(['危險', '安全'])
+    expect(r.loans[0].id).toBe(2) // id 透傳到結果物件
   })
 
   it('擔保品缺報價：該筆 stressedRatio/marginCallDrop undefined 並列 missing', () => {

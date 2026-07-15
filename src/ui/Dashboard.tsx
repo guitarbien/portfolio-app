@@ -51,7 +51,7 @@ export default function Dashboard() {
 
       {pledges.map((loan) => {
         const m = maintenanceRatio(loan, data.prices, today())
-        const s = stress.loans.find((r) => r.name === loan.name)
+        const s = stress.loans.find((r) => r.id === loan.id)
         return (
           <article key={loan.id}>
             <h3>{loan.name}</h3>

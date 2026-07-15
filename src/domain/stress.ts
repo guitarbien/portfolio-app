@@ -9,6 +9,7 @@ export interface StressInput {
 }
 
 export interface StressLoanResult {
+  id?: number
   name: string
   stressedRatio?: number
   marginCallDrop?: number
@@ -52,7 +53,7 @@ export function stressTest(input: StressInput): StressResult {
       stressedValue += Math.max(0, marketValue * (1 - beta * input.drop))
     }
     if (missing.length > 0 || loan.balance <= 0) {
-      results.push({ name: loan.name, missing })
+      results.push({ id: loan.id, name: loan.name, missing })
       continue
     }
     const thresholdValue = (loan.maintenanceThreshold / 100) * loan.balance
@@ -67,7 +68,7 @@ export function stressTest(input: StressInput): StressResult {
       topUpRepay = loan.balance - stressedValue / restore
       totalTopUp += topUpCollateral
     }
-    results.push({ name: loan.name, stressedRatio, marginCallDrop, topUpCollateral, topUpRepay, missing })
+    results.push({ id: loan.id, name: loan.name, stressedRatio, marginCallDrop, topUpCollateral, topUpRepay, missing })
   }
 
   results.sort((a, b) => (a.marginCallDrop ?? Infinity) - (b.marginCallDrop ?? Infinity))
