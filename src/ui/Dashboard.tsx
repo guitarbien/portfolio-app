@@ -7,15 +7,18 @@ import { stressTest } from '../domain/stress'
 import { fmtPct, fmtTwd } from '../lib/format'
 import { today } from '../lib/date'
 import { currentHoldings } from '../domain/holdings'
+import { xirr } from '../domain/xirr'
+import { buildXirrInput } from '../domain/xirrInput'
 
 export default function Dashboard() {
   const [dropPct, setDropPct] = useState(0)
   const data = useLiveQuery(async () => {
-    const [accounts, instrumentList, positions, transactions, loans, prices, fx] = await Promise.all([
+    const [accounts, instrumentList, positions, transactions, loans, prices, fx, cashFlows] = await Promise.all([
       repo.listAccounts(), repo.listInstruments(), repo.listPositions(),
       repo.listTransactions(), repo.listLoans(), repo.latestEffectivePrices(), repo.latestUsdTwd(),
+      repo.listCashFlows(),
     ])
-    return { accounts, instruments: new Map(instrumentList.map((i) => [i.symbol, i])), positions, transactions, loans, prices, fx }
+    return { accounts, instruments: new Map(instrumentList.map((i) => [i.symbol, i])), positions, transactions, loans, prices, fx, cashFlows }
   }, [])
 
   if (!data) return <p>載入中…</p>
@@ -28,6 +31,13 @@ export default function Dashboard() {
     cash: data.accounts.map((a) => ({ currency: a.currency, amount: a.cashBalance })),
     loans: data.loans,
   })
+  const xirrInput = buildXirrInput(data.cashFlows, valuation.nav, today())
+  const rate = xirr(xirrInput.flows)
+  const firstFlowDate = data.cashFlows
+    .filter((c) => c.is_external)
+    .map((c) => c.date)
+    .sort()[0]
+
   const cashTwd = data.accounts
     .filter((a) => a.currency === 'TWD')
     .reduce((s, a) => s + a.cashBalance, 0)
@@ -43,11 +53,19 @@ export default function Dashboard() {
     <section>
       <h2>儀表板</h2>
       {missing.size > 0 && <p role="alert">報價缺失：{[...missing].join('、')}</p>}
+      {xirrInput.skipped.length > 0 && (
+        <p role="alert">{xirrInput.skipped.length} 筆外幣流量缺匯率未計入</p>
+      )}
       <dl>
         <dt>淨值</dt><dd>{fmtTwd(valuation.nav)}</dd>
         <dt>總曝險</dt><dd>{fmtTwd(valuation.exposure)}</dd>
         <dt>槓桿倍率</dt>
         <dd>{valuation.leverageRatio === undefined ? '—' : valuation.leverageRatio.toFixed(2)}</dd>
+        <dt>年化報酬率（XIRR）</dt>
+        <dd>
+          {rate === undefined ? '—' : `${(rate * 100).toFixed(1)}%`}
+          {firstFlowDate && <small>自 {firstFlowDate} 起</small>}
+        </dd>
       </dl>
 
       {pledges.map((loan) => {

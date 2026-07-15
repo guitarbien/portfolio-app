@@ -72,6 +72,17 @@ describe('Holdings', () => {
     expect(screen.getAllByText('—').length).toBeGreaterThan(0) // 2330 缺價（收盤價＋市值均顯示 —）
   })
 
+  it('編輯帳戶現金餘額', async () => {
+    await repo.addAccount({ name: '永豐', broker: '永豐金', currency: 'TWD', cashBalance: 1000 })
+    const user = userEvent.setup()
+    render(<Holdings />)
+    const input = await screen.findByLabelText('永豐 現金餘額')
+    await user.clear(input)
+    await user.type(input, '99000')
+    await user.click(screen.getByRole('button', { name: '儲存 永豐 餘額' }))
+    expect((await repo.listAccounts())[0].cashBalance).toBe(99_000)
+  })
+
   it('重複建快照顯示守衛錯誤', async () => {
     const accountId = await repo.addAccount({ name: '永豐', broker: '永豐金', currency: 'TWD', cashBalance: 0 })
     await repo.putInstrument({ symbol: '0050', name: '元大台灣50', market: 'TW', currency: 'TWD', leverageFactor: 1 })

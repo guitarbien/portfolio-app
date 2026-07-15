@@ -49,6 +49,21 @@ describe('Loans', () => {
     )
   })
 
+  it('編輯借款餘額', async () => {
+    await repo.addLoan({
+      name: '質押A', kind: 'pledge', balance: 60_000, rate: 0.04,
+      maintenanceThreshold: 130, restoreThreshold: 166,
+      includeInterestInDenominator: false, collateral: [],
+    })
+    const user = userEvent.setup()
+    render(<Loans />)
+    const input = await screen.findByLabelText('質押A 餘額')
+    await user.clear(input)
+    await user.type(input, '50000')
+    await user.click(screen.getByRole('button', { name: '儲存 質押A 餘額' }))
+    expect((await repo.listLoans())[0].balance).toBe(50_000)
+  })
+
   it('刪除借款', async () => {
     await repo.addLoan({
       name: '質押A', kind: 'pledge', balance: 1, rate: 0.04,

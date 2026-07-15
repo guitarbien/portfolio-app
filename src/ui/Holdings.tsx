@@ -4,6 +4,23 @@ import { repo } from '../data/repo'
 import { today } from '../lib/date'
 import { currentHoldings } from '../domain/holdings'
 import { fmtTwd } from '../lib/format'
+import type { Account } from '../domain/types'
+
+function AccountBalanceEditor({ account }: { account: Account }) {
+  const [value, setValue] = useState(String(account.cashBalance))
+  return (
+    <li>
+      {account.name}
+      <label>{account.name} 現金餘額
+        <input type="number" aria-label={`${account.name} 現金餘額`} value={value}
+          onChange={(e) => setValue(e.target.value)} />
+      </label>
+      <button onClick={() => repo.updateAccount(account.id!, { cashBalance: Number(value) })}>
+        儲存 {account.name} 餘額
+      </button>
+    </li>
+  )
+}
 
 export default function Holdings() {
   const accounts = useLiveQuery(repo.listAccounts, [], [])
@@ -63,6 +80,8 @@ export default function Holdings() {
           onChange={(e) => setAccount({ ...account, cashBalance: Number(e.target.value) })} /></label>
         <button type="submit">新增帳戶</button>
       </form>
+
+      <ul>{accounts.map((a) => <AccountBalanceEditor key={a.id} account={a} />)}</ul>
 
       <form onSubmit={addPosition}>
         <label>帳戶<select value={pos.accountId} required

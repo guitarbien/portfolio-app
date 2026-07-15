@@ -1,6 +1,22 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { repo } from '../data/repo'
+import type { Loan } from '../domain/types'
+
+function LoanBalanceEditor({ loan }: { loan: Loan }) {
+  const [value, setValue] = useState(String(loan.balance))
+  return (
+    <>
+      <label>{loan.name} 餘額
+        <input type="number" aria-label={`${loan.name} 餘額`} value={value}
+          onChange={(e) => setValue(e.target.value)} />
+      </label>
+      <button onClick={() => repo.updateLoan(loan.id!, { balance: Number(value) })}>
+        儲存 {loan.name} 餘額
+      </button>
+    </>
+  )
+}
 
 const empty = {
   name: '', kind: 'pledge' as 'pledge' | 'mortgage', balance: 0, ratePct: 0,
@@ -77,6 +93,7 @@ export default function Loans() {
         {loans.map((l) => (
           <li key={l.id}>
             {l.name}
+            <LoanBalanceEditor loan={l} />
             <button aria-label={`刪除 ${l.name}`} onClick={() => repo.deleteLoan(l.id!)}>刪除</button>
           </li>
         ))}
