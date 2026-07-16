@@ -79,6 +79,12 @@ export default function ImportWizard() {
       if (!date) { errors.push(`第 ${lineNo} 列：日期無法解析`); return }
       const amount = parseAmount(r[col(map.amountCol)] ?? '')
       if (amount === undefined) { errors.push(`第 ${lineNo} 列：金額無法解析`); return }
+      // ponytail: 無類別欄時金額正負即方向，不走 KIND_TO_CASHFLOW
+      if (map.kindCol === '無') {
+        const kind = amount >= 0 ? 'contribution' : 'withdrawal'
+        valid.push({ accountId: Number(accountId), date, amount, currency: account?.currency ?? 'TWD', kind, is_external: true })
+        return
+      }
       const { kind, sign } = KIND_TO_CASHFLOW[kindLabel]
       valid.push({
         accountId: Number(accountId), date, amount: sign * Math.abs(amount),
@@ -111,7 +117,7 @@ export default function ImportWizard() {
             return (
               <label key={label}>{label}
                 <select value={map[field]} onChange={(e) => setMap({ ...map, [field]: e.target.value })}>
-                  {label === '類別欄' && <option value="無">無</option>}
+                  {label === '類別欄' && <option value="無">無（以金額正負判定：正＝投入、負＝提領）</option>}
                   {label !== '類別欄' && <option value="">選擇欄位</option>}
                   {headers.map((h) => <option key={h} value={h}>{h}</option>)}
                 </select>

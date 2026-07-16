@@ -53,6 +53,29 @@ describe('ImportWizard', () => {
     }))
   })
 
+  it('無類別欄：以金額正負判定方向（正→投入、負→提領）', async () => {
+    const user = userEvent.setup()
+    const CSV_NO_KIND = ['日期,金額', '2016/3/5,3000', '2016/4/1,-500'].join('\n')
+    render(<ImportWizard />)
+    await user.selectOptions(await screen.findByRole('combobox', { name: /匯入帳戶/ }), '永豐')
+    await user.upload(screen.getByLabelText('選擇 CSV 檔'), new File([CSV_NO_KIND], 'simple.csv', { type: 'text/csv' }))
+    await user.selectOptions(await screen.findByLabelText('日期欄'), '日期')
+    await user.selectOptions(screen.getByLabelText('金額欄'), '金額')
+    // 類別欄保持預設 '無'
+    await user.click(screen.getByRole('button', { name: '預覽' }))
+    expect(await screen.findByText('可匯入 2 筆')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '匯入 2 筆' }))
+    expect(await screen.findByText('已匯入 2 筆')).toBeInTheDocument()
+    const flows = (await repo.listCashFlows()).sort((a, b) => a.date.localeCompare(b.date))
+    expect(flows).toHaveLength(2)
+    expect(flows[0]).toEqual(expect.objectContaining({
+      date: '2016-03-05', amount: 3000, kind: 'contribution', is_external: true,
+    }))
+    expect(flows[1]).toEqual(expect.objectContaining({
+      date: '2016-04-01', amount: -500, kind: 'withdrawal', is_external: true,
+    }))
+  })
+
   it('對映設定存入 localStorage 並於同表頭重載', async () => {
     const user = userEvent.setup()
     await uploadAndMap(user)
