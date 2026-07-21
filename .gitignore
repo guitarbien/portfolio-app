@@ -1,3 +1,19 @@
 node_modules/
 dist/
 coverage/
+
+# ── 個人財務資料防呆：repo 是公開的，以下格式的檔案絕不允許入版控 ──
+# App 的 JSON 備份匯出
+*backup*.json
+*備份*.json
+# 記帳/對帳單原始檔
+*.csv
+*.tsv
+*.xls
+*.xlsx
+*.xlsm
+*.xlsb
+*.ods
+*.numbers
+# 本機工作暫存
+.superpowers/
