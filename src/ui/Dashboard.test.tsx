@@ -4,6 +4,7 @@ import { fireEvent } from '@testing-library/react'
 import { db } from '../data/db'
 import { repo } from '../data/repo'
 import Dashboard from './Dashboard'
+import { today } from '../lib/date'
 
 afterEach(cleanup)
 
@@ -122,5 +123,22 @@ describe('Dashboard', () => {
     await repo.addCashFlow({ accountId: 1, date: '2020-01-01', amount: 100, currency: 'USD', kind: 'contribution', is_external: true })
     render(<Dashboard />)
     expect(await screen.findByText(/1 筆外幣流量缺匯率未計入/)).toBeInTheDocument()
+  })
+})
+
+describe('質押卡狀態色', () => {
+  it('維持率高於門檻+15 → status-good', async () => {
+    await seed() // 166.7%、門檻 130
+    render(<Dashboard />)
+    const card = (await screen.findByText('維持率 166.7%')).closest('article')
+    expect(card).toHaveClass('status-good')
+  })
+
+  it('維持率低於門檻 → status-critical', async () => {
+    await seed()
+    await repo.upsertPrice({ symbol: '0050', date: today(), close: 70, source: 'manual' }) // 116.7% < 130
+    render(<Dashboard />)
+    const card = (await screen.findByText('維持率 116.7%')).closest('article')
+    expect(card).toHaveClass('status-critical')
   })
 })

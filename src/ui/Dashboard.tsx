@@ -71,8 +71,17 @@ export default function Dashboard() {
       {pledges.map((loan) => {
         const m = maintenanceRatio(loan, data.prices, today())
         const s = stress.loans.find((r) => r.id === loan.id)
+        // 狀態分級：低於追繳門檻＝critical；門檻+15 內＝warning（券商預警線慣例）；其上＝good
+        const status =
+          m.ratio === undefined
+            ? undefined
+            : m.ratio < loan.maintenanceThreshold
+              ? 'status-critical'
+              : m.ratio < loan.maintenanceThreshold + 15
+                ? 'status-warning'
+                : 'status-good'
         return (
-          <article key={loan.id}>
+          <article key={loan.id} className={status}>
             <h3>{loan.name}</h3>
             {m.ratio !== undefined && <p>維持率 {fmtPct(m.ratio)}</p>}
             {m.missing.length > 0 && <p>報價缺失：{m.missing.join('、')}</p>}
